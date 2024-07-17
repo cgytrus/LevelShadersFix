@@ -1,0 +1,24 @@
+{
+    "geode": "3.2.0",
+    "gd": {
+        "win": "2.206",
+        "android": "2.206",
+        "mac": "2.206"
+    },
+    "id": "cgytrus.level-shaders-fix",
+    "name": "Level Shaders Fix",
+    "version": "v1.0.0",
+    "developer": "ConfiG",
+    "description": "Fixes a major performance issue with 2.2 shader triggers",
+    "repository": "https://github.com/cgytrus/LevelShadersFix",
+    "issues": {
+        "info": "Report any issues you have on GitHub issues.",
+        "url": "https://github.com/cgytrus/LevelShadersFix/issues"
+    },
+    "tags": [ "offline", "bugfix", "performance" ],
+    "resources": {
+        "files": [
+            "resources/shaders/*.glsl"
+        ]
+    }
+}
