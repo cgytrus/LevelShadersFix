@@ -105,21 +105,24 @@ class $modify(ShaderLayer) {
             GameManager::get()->m_shouldResetShader = false;
         }
 
+        auto visibleSize = CCDirector::get()->getVisibleSize();
         auto targetSize = CCDirector::get()->getOpenGLView()->getFrameSize() * utils::getDisplayFactor();
 
         m_renderTexture = CCRenderTexture::create((int)targetSize.width, (int)targetSize.height, kCCTexture2DPixelFormat_RGBA8888);
         m_renderTexture->retain();
 
+        float cringe = std::sqrt(visibleSize.width * visibleSize.width + visibleSize.height * visibleSize.height);
         float scaleFactorX = CCDirector::get()->getScreenScaleFactorW();
-        m_shockWaveTimeMult = 1.f / 0.8320503f / scaleFactorX;
+        m_shockWaveTimeMult = visibleSize.width / cringe;
+        m_shockWaveTimeMult /= 480.f / std::sqrt(480.f * 480.f + 320.f * 320.f);
+        m_shockWaveTimeMult /= scaleFactorX;
 
-        m_targetTextureSizeExtra = ccp(0.f, 0.f);
+        m_textureContentSize = CCSize(std::floor(cringe), std::floor(cringe));
+        m_targetTextureSize = visibleSize;
+        m_targetTextureSizeExtra = m_targetTextureSize - visibleSize;
 
-        //m_sprite = m_renderTexture->getSprite();
         m_sprite = CCSprite::create();
         m_sprite->setTexture(m_renderTexture->getSprite()->getTexture());
-        m_textureContentSize = CCDirector::get()->getVisibleSize();
-        m_targetTextureSize = CCDirector::get()->getVisibleSize();
         m_sprite->setTextureRect(CCRect(-1.f, -1.f, m_targetTextureSize.width + 2.f, m_targetTextureSize.height + 2.f));
         m_sprite->setPosition(ccp(0.f, 0.f));
         m_sprite->setAnchorPoint(ccp(0.f, 0.f));
@@ -127,12 +130,8 @@ class $modify(ShaderLayer) {
         this->addChild(m_sprite);
         m_sprite->setShaderProgram(m_shader);
 
-        GLint textureRatioUniform = m_shader->getUniformLocationForName("_textureRatio");
-        GLint textureRatioInvUniform = m_shader->getUniformLocationForName("_textureRatioInv");
-        GLint textureOffsetUniform = m_shader->getUniformLocationForName("_textureOffset");
-        m_shader->setUniformLocationWith1f(textureRatioUniform, targetSize.width / targetSize.height);
-        m_shader->setUniformLocationWith1f(textureRatioInvUniform, targetSize.height / targetSize.width);
-        m_shader->setUniformLocationWith1f(textureOffsetUniform, (targetSize.width - targetSize.height) / targetSize.width * 0.5f);
+        GLint robHackUniform = m_shader->getUniformLocationForName("_robHack");
+        m_shader->setUniformLocationWith2f(robHackUniform, visibleSize.width / std::floor(cringe), visibleSize.height / std::floor(cringe));
 
         // setupCommonUniforms
         m_textureScaleUniform = m_shader->getUniformLocationForName("_textureScale");
