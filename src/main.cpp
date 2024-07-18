@@ -2,26 +2,6 @@
 
 using namespace geode::prelude;
 
-#include <Geode/modify/CCRenderTexture.hpp>
-class $modify(CCRenderTexture) {
-    bool initWithWidthAndHeight(int w, int h, CCTexture2DPixelFormat format, GLuint depthStencilFormat) {
-        auto* director = CCDirector::get();
-        float saved = director->m_fContentScaleFactor;
-        director->m_fContentScaleFactor = 1.f;
-        bool res = CCRenderTexture::initWithWidthAndHeight(w, h, format, depthStencilFormat);
-        director->m_fContentScaleFactor = saved;
-        return res;
-    }
-
-    void begin() {
-        auto* director = CCDirector::get();
-        float saved = director->m_fContentScaleFactor;
-        director->m_fContentScaleFactor = director->getOpenGLView()->getFrameSize().height * utils::getDisplayFactor() / director->getWinSize().height;
-        CCRenderTexture::begin();
-        director->m_fContentScaleFactor = saved;
-    }
-};
-
 #include <Geode/modify/ShaderLayer.hpp>
 class $modify(ShaderLayer) {
     void performCalculations() {
@@ -32,7 +12,7 @@ class $modify(ShaderLayer) {
         director->m_fContentScaleFactor = saved;
     }
 
-    CCPoint prepareTargetContainer() {
+    void visit() {
         auto* director = CCDirector::get();
         float saved = director->m_fContentScaleFactor;
         director->m_fContentScaleFactor = director->getOpenGLView()->getFrameSize().height * utils::getDisplayFactor() / director->getWinSize().height;
@@ -48,11 +28,10 @@ class $modify(ShaderLayer) {
         float rot = robTopsEpicNode->getRotation();
         robTopsEpicNode->setRotation(0.f);
 
-        auto res = ShaderLayer::prepareTargetContainer();
+        ShaderLayer::visit();
 
         robTopsEpicNode->setRotation(rot);
         director->m_fContentScaleFactor = saved;
-        return res;
     }
 
     void setupShader(bool shouldReset) {
@@ -105,14 +84,20 @@ class $modify(ShaderLayer) {
             GameManager::get()->m_shouldResetShader = false;
         }
 
-        auto visibleSize = CCDirector::get()->getVisibleSize();
-        auto targetSize = CCDirector::get()->getOpenGLView()->getFrameSize() * utils::getDisplayFactor();
+        auto* director = CCDirector::get();
 
+        auto visibleSize = director->getVisibleSize();
+        auto targetSize = director->getOpenGLView()->getFrameSize() * utils::getDisplayFactor();
+
+        float savedContentScaleFactor = director->m_fContentScaleFactor;
+        director->m_fContentScaleFactor = 1.f;
         m_renderTexture = CCRenderTexture::create((int)targetSize.width, (int)targetSize.height, kCCTexture2DPixelFormat_RGBA8888);
+        director->m_fContentScaleFactor = savedContentScaleFactor;
+
         m_renderTexture->retain();
 
         float cringe = std::sqrt(visibleSize.width * visibleSize.width + visibleSize.height * visibleSize.height);
-        float scaleFactorX = CCDirector::get()->getScreenScaleFactorW();
+        float scaleFactorX = director->getScreenScaleFactorW();
         m_shockWaveTimeMult = visibleSize.width / cringe;
         m_shockWaveTimeMult /= 480.f / std::sqrt(480.f * 480.f + 320.f * 320.f);
         m_shockWaveTimeMult /= scaleFactorX;
