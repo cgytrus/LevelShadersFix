@@ -16,22 +16,19 @@ class $modify(ShaderLayer) {
         auto* director = CCDirector::get();
         float saved = director->m_fContentScaleFactor;
         director->m_fContentScaleFactor = director->getOpenGLView()->getFrameSize().height * utils::getDisplayFactor() / director->getWinSize().height;
+        ShaderLayer::visit();
+        director->m_fContentScaleFactor = saved;
+    }
 
-        // camera rotation fix
-        CCNode* robTopsEpicNode;
-        if (m_state.m_blurRefChannel < 2) {
-            robTopsEpicNode = m_gameLayer->m_unknownE90;
-        }
-        else {
-            robTopsEpicNode = m_gameLayer->m_unknownE98;
-        }
+    // camera rotation fix
+    CCPoint prepareTargetContainer() {
+        CCNode* robTopsEpicNode = m_state.m_blurRefChannel < 2 ?
+            m_gameLayer->m_unknownE90 : m_gameLayer->m_unknownE98;
         float rot = robTopsEpicNode->getRotation();
         robTopsEpicNode->setRotation(0.f);
-
-        ShaderLayer::visit();
-
+        auto res = ShaderLayer::prepareTargetContainer();
         robTopsEpicNode->setRotation(rot);
-        director->m_fContentScaleFactor = saved;
+        return res;
     }
 
     void setupShader(bool shouldReset) {
