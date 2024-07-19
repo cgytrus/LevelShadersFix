@@ -4,14 +4,6 @@ using namespace geode::prelude;
 
 #include <Geode/modify/ShaderLayer.hpp>
 class $modify(ShaderLayer) {
-    void performCalculations() {
-        auto* director = CCDirector::get();
-        float saved = director->m_fContentScaleFactor;
-        director->m_fContentScaleFactor = 1.f;
-        ShaderLayer::performCalculations();
-        director->m_fContentScaleFactor = saved;
-    }
-
     void visit() {
         auto* director = CCDirector::get();
         float saved = director->m_fContentScaleFactor;
@@ -20,8 +12,13 @@ class $modify(ShaderLayer) {
         director->m_fContentScaleFactor = saved;
     }
 
-    // camera rotation fix
     CCPoint prepareTargetContainer() {
+        // pixelate fix
+        // can't change content scale factor here because it's used later in the same function
+        m_state.m_pixelateTargetX /= CCDirector::get()->getContentScaleFactor();
+        m_state.m_pixelateTargetY /= CCDirector::get()->getContentScaleFactor();
+
+        // camera rotation fix
         CCNode* robTopsEpicNode = m_state.m_blurRefChannel < 2 ?
             m_gameLayer->m_unknownE90 : m_gameLayer->m_unknownE98;
         float rot = robTopsEpicNode->getRotation();
@@ -29,6 +26,47 @@ class $modify(ShaderLayer) {
         auto res = ShaderLayer::prepareTargetContainer();
         robTopsEpicNode->setRotation(rot);
         return res;
+    }
+
+    // pixelate fix
+    void prePixelateShader() {
+        if (m_state.m_pixelateTargetX > 1.f || m_state.m_pixelateTargetY > 1.f ||
+            this->getActionByTag(9) || this->getActionByTag(10)) {
+            m_state.m_usesShaders = true;
+            m_state.m_pixelatePixelating = true;
+            this->toggleAntiAlias(!m_state.m_pixelateHardEdges);
+        }
+        else {
+            m_state.m_pixelatePixelating = false;
+            this->toggleAntiAlias(m_configuredAntiAlias);
+        }
+        auto targetSize = m_renderTexture->getSprite()->getTexture()->getContentSizeInPixels();
+        float zoom = m_state.m_pixelatePixelating && m_state.m_pixelateRelative && m_gameLayer ?
+            std::abs(m_gameLayer->m_objectLayer->getScale()) : 1.f;
+        if (m_state.m_pixelateTargetX < 1.f)
+            m_state.m_pixelateTargetX = 1.f;
+        if (m_state.m_pixelateTargetY < 1.f)
+            m_state.m_pixelateTargetY = 1.f;
+        m_state.m_pixelateTargetX = targetSize.width / std::round(m_textureContentSize.width / m_state.m_pixelateTargetX);
+        m_state.m_pixelateTargetY = targetSize.height / std::round(m_textureContentSize.height / m_state.m_pixelateTargetY);
+        float scaledTargetX = zoom * m_state.m_pixelateTargetX;
+        float scaledTargetY = zoom * m_state.m_pixelateTargetY;
+        if (scaledTargetX < 1.f)
+            scaledTargetX = 1.f;
+        if (scaledTargetY < 1.f)
+            scaledTargetY = 1.f;
+        float scaledTargetXInv = 1.f / scaledTargetX;
+        float scaledTargetYInv = 1.f / scaledTargetY;
+        m_state.m_textureScaleX = scaledTargetXInv;
+        m_state.m_textureScaleY = scaledTargetYInv;
+        if (m_state.m_pixelatePixelating) {
+            m_renderTexture->updateInternalScale(scaledTargetXInv, scaledTargetYInv);
+        }
+        else {
+            m_renderTexture->updateInternalScale(0.f, 0.f);
+        }
+        m_sprite->setScaleX(scaledTargetX);
+        m_sprite->setScaleY(scaledTargetY);
     }
 
     void setupShader(bool shouldReset) {
