@@ -40,6 +40,14 @@ class $modify(ShaderLayer) {
             m_state.m_pixelatePixelating = false;
             this->toggleAntiAlias(m_configuredAntiAlias);
         }
+        if (!m_state.m_pixelatePixelating) {
+            m_state.m_textureScaleX = 1.f;
+            m_state.m_textureScaleY = 1.f;
+            m_renderTexture->updateInternalScale(0.f, 0.f);
+            m_sprite->setScaleX(1.f);
+            m_sprite->setScaleY(1.f);
+            return;
+        }
         auto targetSize = m_renderTexture->getSprite()->getTexture()->getContentSizeInPixels();
         float zoom = m_state.m_pixelatePixelating && m_state.m_pixelateRelative && m_gameLayer ?
             std::abs(m_gameLayer->m_objectLayer->getScale()) : 1.f;
@@ -59,12 +67,7 @@ class $modify(ShaderLayer) {
         float scaledTargetYInv = 1.f / scaledTargetY;
         m_state.m_textureScaleX = scaledTargetXInv;
         m_state.m_textureScaleY = scaledTargetYInv;
-        if (m_state.m_pixelatePixelating) {
-            m_renderTexture->updateInternalScale(scaledTargetXInv, scaledTargetYInv);
-        }
-        else {
-            m_renderTexture->updateInternalScale(0.f, 0.f);
-        }
+        m_renderTexture->updateInternalScale(scaledTargetXInv, scaledTargetYInv);
         m_sprite->setScaleX(scaledTargetX);
         m_sprite->setScaleY(scaledTargetY);
     }
