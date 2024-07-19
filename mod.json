@@ -6,7 +6,7 @@
     },
     "id": "cgytrus.level-shaders-fix",
     "name": "Level Shaders Fix",
-    "version": "v1.0.1",
+    "version": "v1.0.2",
     "developer": "ConfiG",
     "description": "Fixes a major performance issue with 2.2 shader triggers",
     "repository": "https://github.com/cgytrus/LevelShadersFix",
