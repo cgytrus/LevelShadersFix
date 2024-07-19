@@ -5,8 +5,4 @@ That's caused by the shaders being rendered at 2608x2608 at 16:9 aspect ratio on
 
 This mod will make shaders render at your native screen resolution instead.
 
-To fix scaling artifacts when scaling the absolutely massive texture down, RobTop added
-antialiasing (and an option to turn it off). This mod doesn't implement it,
-as it's no longer needed (and the option doesn't do anything anymore too).
-
 huge thanks to [cookiaria](user:11176693) for help with testing !!!!!

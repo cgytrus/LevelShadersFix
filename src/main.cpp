@@ -150,6 +150,9 @@ class $modify(ShaderLayer) {
         this->addChild(m_sprite);
         m_sprite->setShaderProgram(m_shader);
 
+        m_configuredAntiAlias = !GameManager::get()->getGameVariable("0155");
+        this->toggleAntiAlias(m_configuredAntiAlias);
+
         GLint robHackUniform = m_shader->getUniformLocationForName("_robHack");
         m_shader->setUniformLocationWith2f(robHackUniform, visibleSize.width / std::floor(cringe), visibleSize.height / std::floor(cringe));
 
