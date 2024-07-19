@@ -1,3 +1,6 @@
+# v1.0.3
+- fixed the pixelate fix
+
 # v1.0.2
 - (mostly) fixed pixelate
   - snap grid is still a bit broken but i couldn't figure out how to fix that :p

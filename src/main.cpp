@@ -14,6 +14,11 @@ class $modify(ShaderLayer) {
 
     CCPoint prepareTargetContainer() {
         // pixelate fix
+        auto targetSize = m_renderTexture->getSprite()->getTexture()->getContentSizeInPixels();
+        float savedX = m_state.m_pixelateTargetX;
+        float savedY = m_state.m_pixelateTargetY;
+        m_state.m_pixelateTargetX = targetSize.width / std::round(m_textureContentSize.width / m_state.m_pixelateTargetX);
+        m_state.m_pixelateTargetY = targetSize.height / std::round(m_textureContentSize.height / m_state.m_pixelateTargetY);
         // can't change content scale factor here because it's used later in the same function
         m_state.m_pixelateTargetX /= CCDirector::get()->getContentScaleFactor();
         m_state.m_pixelateTargetY /= CCDirector::get()->getContentScaleFactor();
@@ -23,8 +28,14 @@ class $modify(ShaderLayer) {
             m_gameLayer->m_unknownE90 : m_gameLayer->m_unknownE98;
         float rot = robTopsEpicNode->getRotation();
         robTopsEpicNode->setRotation(0.f);
+
         auto res = ShaderLayer::prepareTargetContainer();
+
         robTopsEpicNode->setRotation(rot);
+
+        m_state.m_pixelateTargetX = savedX;
+        m_state.m_pixelateTargetY = savedY;
+
         return res;
     }
 
@@ -34,13 +45,12 @@ class $modify(ShaderLayer) {
             this->getActionByTag(9) || this->getActionByTag(10)) {
             m_state.m_usesShaders = true;
             m_state.m_pixelatePixelating = true;
-            this->toggleAntiAlias(!m_state.m_pixelateHardEdges);
         }
         else {
             m_state.m_pixelatePixelating = false;
-            this->toggleAntiAlias(m_configuredAntiAlias);
         }
-        if (!m_state.m_pixelatePixelating) {
+        if (m_state.m_pixelateTargetX <= 1.f && m_state.m_pixelateTargetY <= 1.f) {
+            this->toggleAntiAlias(m_configuredAntiAlias);
             m_state.m_textureScaleX = 1.f;
             m_state.m_textureScaleY = 1.f;
             m_renderTexture->updateInternalScale(0.f, 0.f);
@@ -48,17 +58,16 @@ class $modify(ShaderLayer) {
             m_sprite->setScaleY(1.f);
             return;
         }
+        this->toggleAntiAlias(!m_state.m_pixelateHardEdges);
         auto targetSize = m_renderTexture->getSprite()->getTexture()->getContentSizeInPixels();
-        float zoom = m_state.m_pixelatePixelating && m_state.m_pixelateRelative && m_gameLayer ?
+        float zoom = m_state.m_pixelateRelative && m_gameLayer ?
             std::abs(m_gameLayer->m_objectLayer->getScale()) : 1.f;
         if (m_state.m_pixelateTargetX < 1.f)
             m_state.m_pixelateTargetX = 1.f;
         if (m_state.m_pixelateTargetY < 1.f)
             m_state.m_pixelateTargetY = 1.f;
-        m_state.m_pixelateTargetX = targetSize.width / std::round(m_textureContentSize.width / m_state.m_pixelateTargetX);
-        m_state.m_pixelateTargetY = targetSize.height / std::round(m_textureContentSize.height / m_state.m_pixelateTargetY);
-        float scaledTargetX = zoom * m_state.m_pixelateTargetX;
-        float scaledTargetY = zoom * m_state.m_pixelateTargetY;
+        float scaledTargetX = zoom * targetSize.width / std::round(m_textureContentSize.width / m_state.m_pixelateTargetX);
+        float scaledTargetY = zoom * targetSize.height / std::round(m_textureContentSize.height / m_state.m_pixelateTargetY);
         if (scaledTargetX < 1.f)
             scaledTargetX = 1.f;
         if (scaledTargetY < 1.f)
