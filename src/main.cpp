@@ -7,7 +7,7 @@ class $modify(ShaderLayer) {
     void visit() {
         auto* director = CCDirector::get();
         float saved = director->m_fContentScaleFactor;
-        director->m_fContentScaleFactor = director->getOpenGLView()->getFrameSize().height * utils::getDisplayFactor() / director->getWinSize().height;
+        director->m_fContentScaleFactor = m_renderTexture->getSprite()->getTexture()->getContentSizeInPixels().height / director->getWinSize().height;
         ShaderLayer::visit();
         director->m_fContentScaleFactor = saved;
     }

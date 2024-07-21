@@ -5,12 +5,13 @@
 varying vec2 v_texCoord;
 uniform sampler2D CC_Texture0;
 
+uniform vec2 _robHack;
+
 // ---------------------
 // COMMON
 // ---------------------
 uniform vec2 _textureScale;
 uniform vec2 _textureScaleInv;
-uniform vec2 _robHack;
 
 // ---------------------
 // SHOCKWAVE
@@ -196,6 +197,10 @@ float noise(vec2 n) {
     return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
 }
 
+vec4 sampleTex(vec2 uv) {
+    return texture2D(CC_Texture0, uv / _robHack);
+}
+
 // ---------------------
 // MAIN
 // ---------------------
@@ -295,7 +300,7 @@ void main()
     // ---------------------
     // APPLY THE COLOR
     // ---------------------
-    gl_FragColor = texture2D(CC_Texture0, targetVec / _robHack);
+    gl_FragColor = sampleTex(targetVec);
 
     // --------------------- --------------------- ---------------------
     // --------------------- --------------------- ---------------------
@@ -306,9 +311,9 @@ void main()
     if (_cGRGBOffset != 0.0) {
         float cVal = (scaledTexCoord.y+_cGYOffset)*50.0*_cGHeight;
         targetVec.x += (noise(vec2(_cGTime,cVal))-noise(vec2(0,cVal)))*_cGStrength;
-        vec4 r = texture2D(CC_Texture0, vec2(targetVec.x - _cGRGBOffset, targetVec.y) / _robHack);
-        vec4 g = texture2D(CC_Texture0, vec2(targetVec.x, targetVec.y) / _robHack);
-        vec4 b = texture2D(CC_Texture0, vec2(targetVec.x + _cGRGBOffset, targetVec.y) / _robHack);
+        vec4 r = sampleTex(vec2(targetVec.x - _cGRGBOffset, targetVec.y));
+        vec4 g = sampleTex(vec2(targetVec.x, targetVec.y));
+        vec4 b = sampleTex(vec2(targetVec.x + _cGRGBOffset, targetVec.y));
 
         vec3 color = vec3(r.r, g.g, b.b);
 
@@ -325,17 +330,17 @@ void main()
     if (_glitchTop > 0.0) {
         // Offset one channel
         if (_glitchRnd < 0.33) {
-            vec4 col2 = texture2D(CC_Texture0, (targetVec + _glitchColOffset) / _robHack);
+            vec4 col2 = sampleTex(targetVec + _glitchColOffset);
             gl_FragColor.r = col2.r;
             gl_FragColor.a = max(gl_FragColor.a, col2.a);
         }
         else if (_glitchRnd < 0.66) {
-            vec4 col2 = texture2D(CC_Texture0, (targetVec + _glitchColOffset) / _robHack);
+            vec4 col2 = sampleTex(targetVec + _glitchColOffset);
             gl_FragColor.g = col2.g;
             gl_FragColor.a = max(gl_FragColor.a, col2.a);
         }
         else {
-            vec4 col2 = texture2D(CC_Texture0, (targetVec + _glitchColOffset) / _robHack);
+            vec4 col2 = sampleTex(targetVec + _glitchColOffset);
             gl_FragColor.b = col2.b;
             gl_FragColor.a = max(gl_FragColor.a, col2.a);
         }
@@ -345,8 +350,8 @@ void main()
     // CHROMATIC
     // ---------------------
     if (_chromaticXOff != 0.0 || _chromaticYOff != 0.0) {
-        vec4 r = texture2D(CC_Texture0, (targetVec + vec2(_chromaticXOff, _chromaticYOff)) / _robHack);
-        vec4 b = texture2D(CC_Texture0, (targetVec + vec2(-_chromaticXOff, -_chromaticYOff)) / _robHack);
+        vec4 r = sampleTex(targetVec + vec2(_chromaticXOff, _chromaticYOff));
+        vec4 b = sampleTex(targetVec + vec2(-_chromaticXOff, -_chromaticYOff));
         gl_FragColor = vec4(r.r, gl_FragColor.g, b.b, max(r.a, max(gl_FragColor.a,b.a)));
     }
 
@@ -363,7 +368,7 @@ void main()
             for (int i = 1; i < radialBlurSamples; i++) {
                 modVal -= _blurFade;
                 uv.xy += blurVector.xy;
-                result += texture2D(CC_Texture0, uv / _robHack) * modVal;
+                result += sampleTex(uv) * modVal;
             }
 
             result *= radialBlurSamplesInv;
@@ -380,7 +385,7 @@ void main()
     // ---------------------
     else if (_motionBlurValue.x != 0.0 || _motionBlurValue.y != 0.0)
     {
-        //vec4 result = texture2D(CC_Texture0, targetVec / _robHack);
+        //vec4 result = sampleTex(targetVec);
         vec4 result = gl_FragColor;
 
         if (!_blurOnlyEmpty || result.a < 0.1) {
@@ -388,15 +393,15 @@ void main()
                 for (float i = 1.0; i < mbSamplesLoopDual; ++i) {
                     float modVal = 1.0 - (i * _blurFade);
                     vec2 offset = _motionBlurValue * (i * mbSamplesDualInv);
-                    result += texture2D(CC_Texture0, (targetVec + offset) / _robHack) * modVal;
-                    result += texture2D(CC_Texture0, (targetVec - offset) / _robHack) * modVal;
+                    result += sampleTex(targetVec + offset) * modVal;
+                    result += sampleTex(targetVec - offset) * modVal;
                 }
             }
             else {
                 for (float i = 1.0; i < mbSamplesLoop; ++i) {
                     float modVal = 1.0 - (i * _blurFade);
                     vec2 offset = _motionBlurValue * (i * mbSamplesInv);
-                    result += texture2D(CC_Texture0, (targetVec + offset) / _robHack) * modVal;
+                    result += sampleTex(targetVec + offset) * modVal;
                 }
             }
 
