@@ -6,6 +6,7 @@ varying vec2 v_texCoord;
 uniform sampler2D CC_Texture0;
 
 uniform vec2 _robHack;
+uniform vec2 _camRot;
 
 // ---------------------
 // COMMON
@@ -197,8 +198,28 @@ float noise(vec2 n) {
     return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
 }
 
+vec2 applyRotation(vec2 uv) {
+    uv -= vec2(0.5) / _robHack;
+    uv = vec2(
+        _camRot.x * uv.x - _camRot.y * uv.y,
+        _camRot.y * uv.x + _camRot.x * uv.y
+    );
+    uv += vec2(0.5) / _robHack;
+    return uv;
+}
+
+vec2 undoRotation(vec2 uv) {
+    uv -= vec2(0.5) / _robHack;
+    uv = vec2(
+        _camRot.x * uv.x - -_camRot.y * uv.y,
+        -_camRot.y * uv.x + _camRot.x * uv.y
+    );
+    uv += vec2(0.5) / _robHack;
+    return uv;
+}
+
 vec4 sampleTex(vec2 uv) {
-    return texture2D(CC_Texture0, uv / _robHack);
+    return texture2D(CC_Texture0, undoRotation(uv) / _robHack);
 }
 
 // ---------------------
@@ -206,14 +227,14 @@ vec4 sampleTex(vec2 uv) {
 // ---------------------
 void main()
 {
-    vec2 scaledTexCoord = v_texCoord * _robHack;
+    vec2 scaledTexCoord = applyRotation(v_texCoord * _robHack);
     vec2 targetVec = scaledTexCoord;
 
     // ---------------------
     // SHOCKWAVE
     // ---------------------
     if (_shockWaveTime > 0.0) {
-        vec2 p = targetVec*_textureScaleInv - _shockWaveCenter;
+        vec2 p = targetVec*_textureScaleInv - applyRotation(_shockWaveCenter);
 
         float dis = max(length(p), 0.0001);
 
@@ -230,8 +251,8 @@ void main()
     // SHOCKLINE
     // ---------------------
     if (_shockLineTime != 0.0) {
-        //float dis = (_shockLineAxis ? targetVec.y : targetVec.x) * _textureScaleInv - _shockLineCenter;
-        float dis = (_shockLineAxis ? targetVec.y : targetVec.x) - _shockLineCenter;
+        //float dis = (_shockLineAxis ? targetVec.y : targetVec.x) * _textureScaleInv - applyRotation(_shockLineCenter);
+        float dis = (_shockLineAxis ? targetVec.y : targetVec.x) - applyRotation(_shockLineCenter);
 
         float k = _shockLineMaxDistVal == 0.0 ? 1.0 : (clamp(1.0 + (dis < 0.0 ? 1.0 : -1.0) * dis * _shockLineMaxDistVal, 0.0, 1.0));
 
@@ -247,13 +268,13 @@ void main()
     // BULGE
     // ---------------------
     if (_bulgeValue > 0.0) {
-        vec2 d = targetVec*_textureScaleInv - _bulgeOrigin;
+        vec2 d = targetVec*_textureScaleInv - applyRotation(_bulgeOrigin);
 
         float di = length(d);
 
         if (di < _bulgeRadius) {
             float fadeValue = pow(di / _bulgeRadius, 3.0);
-            vec2 bulgedVec = (_bulgeOrigin + normalize(d) * tan(sqrt(dot(d, d)) * _bulgeValue) * _bulgeValue2) * _textureScale;
+            vec2 bulgedVec = (applyRotation(_bulgeOrigin) + normalize(d) * tan(sqrt(dot(d, d)) * _bulgeValue) * _bulgeValue2) * _textureScale;
             targetVec = targetVec * fadeValue + bulgedVec * (1.0 - fadeValue);
         }
     }
@@ -263,12 +284,12 @@ void main()
     // ---------------------
     // Original function
     if (_pinchValue.x != 0.0 || _pinchValue.y != 0.0) {
-        vec2 d = targetVec*_textureScaleInv - _pinchCenterPos;
+        vec2 d = targetVec*_textureScaleInv - applyRotation(_pinchCenterPos);
 
         float di = length(d);
         if (di < _pinchRadius) {
             float fadeValue = pow(di / _pinchRadius, 2.0);
-            vec2 pinchedVec = (_pinchCenterPos + normalize(d) * atan(sqrt(dot(d, d)) * -_pinchValue * 20.0) * _pinchCalc1) * _textureScale;
+            vec2 pinchedVec = (applyRotation(_pinchCenterPos) + normalize(d) * atan(sqrt(dot(d, d)) * -_pinchValue * 20.0) * _pinchCalc1) * _textureScale;
             targetVec = targetVec * fadeValue + pinchedVec * (1.0 - fadeValue);
         }
     }
@@ -285,6 +306,7 @@ void main()
     // SPLITSCREEN
     // ---------------------
     if (_colmod != 1.0 || _rowmod != 1.0) {
+        targetVec = undoRotation(targetVec);
         float normalizedX = (targetVec.x - _splitXStart) * _splitXRangeMult;
         normalizedX = (normalizedX < 0.5*_textureScale.x) ? normalizedX * _colmod : (normalizedX * _colmod) + _colmodCalc;
         targetVec.x = _splitXStart + fract(normalizedX) * _splitXRange;
@@ -292,6 +314,7 @@ void main()
         float normalizedY = (targetVec.y - _splitYStart) * _splitYRangeMult;
         normalizedY = (normalizedY < 0.5*_textureScale.y) ? normalizedY * _rowmod : (normalizedY * _rowmod) + _rowmodCalc;
         targetVec.y = _splitYStart + fract(normalizedY) * _splitYRange;
+        targetVec = applyRotation(targetVec);
     }
 
     // --------------------- --------------------- ---------------------
@@ -362,7 +385,7 @@ void main()
         vec4 result = gl_FragColor;
         if (!_blurOnlyEmpty || result.a < 0.1) {
             vec2 uv = targetVec;
-            vec2 blurVector = (_radialBlurCenter - uv) * _radialBlurValue;
+            vec2 blurVector = (applyRotation(_radialBlurCenter) - uv) * _radialBlurValue;
             float modVal = 1.0 + 4.5*_blurFade;
             result *= modVal;
             for (int i = 1; i < radialBlurSamples; i++) {
@@ -457,7 +480,7 @@ void main()
     // LENSCIRCLE
     // ---------------------
     if (_lensCircleStrength > 0.0) {
-        float dist = distance(scaledTexCoord * _textureScaleInv, _lensCircleOrigin);
+        float dist = distance(scaledTexCoord * _textureScaleInv, applyRotation(_lensCircleOrigin));
         float k = _lensCircleStart == _lensCircleEnd ? ((dist >= _lensCircleEnd ? _lensCircleStrength : 0.0)) : _lensCircleStrength * (1.0 - smoothstep(_lensCircleEnd, _lensCircleStart, dist));
         if (_lensCircleAdditive) gl_FragColor.rgb = gl_FragColor.rgb + (_lensCircleTint * k);
         else gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - k) + (_lensCircleTint * k);

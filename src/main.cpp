@@ -2,8 +2,14 @@
 
 using namespace geode::prelude;
 
+#include <numbers>
+
 #include <Geode/modify/ShaderLayer.hpp>
 class $modify(ShaderLayer) {
+    struct Fields {
+        GLint m_camRotUniform;
+    };
+
     void visit() {
         auto* director = CCDirector::get();
         float saved = director->m_fContentScaleFactor;
@@ -32,6 +38,10 @@ class $modify(ShaderLayer) {
         auto res = ShaderLayer::prepareTargetContainer();
 
         robTopsEpicNode->setRotation(rot);
+        m_shader->setUniformLocationWith2f(m_fields->m_camRotUniform,
+            std::cos(rot * (std::numbers::pi_v<float> / 180.f)),
+            std::sin(rot * (std::numbers::pi_v<float> / 180.f))
+        );
 
         m_state.m_pixelateTargetX = savedX;
         m_state.m_pixelateTargetY = savedY;
@@ -167,6 +177,7 @@ class $modify(ShaderLayer) {
 
         GLint robHackUniform = m_shader->getUniformLocationForName("_robHack");
         m_shader->setUniformLocationWith2f(robHackUniform, visibleSize.width / std::floor(cringe), visibleSize.height / std::floor(cringe));
+        m_fields->m_camRotUniform = m_shader->getUniformLocationForName("_camRot");
 
         // setupCommonUniforms
         m_textureScaleUniform = m_shader->getUniformLocationForName("_textureScale");
